@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>student h@te</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #222;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 10px;
+        }
+
+        .add-btn {
+            font-size: 30px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+        }
+
+        .form {
+            display: none;
+            background: white;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+
+        .form input, .form textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+        }
+
+        .form button {
+            padding: 8px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .review {
+            background: white;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+
+        .like-btn {
+            cursor: pointer;
+            color: #e91e63;
+            border: none;
+            background: none;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<header>student h@te</header>
+
+<div class="container">
+    <button class="add-btn" onclick="toggleForm()">+</button>
+
+    <div class="form" id="form">
+        <input type="text" id="vorname" placeholder="Vorname">
+        <input type="text" id="nachname" placeholder="Nachname">
+        <textarea id="kommentar" placeholder="Kommentar"></textarea>
+        <button onclick="addReview()">Bewertung hinzufügen</button>
+    </div>
+
+    <div id="reviews"></div>
+</div>
+
+<script>
+    let reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+
+    function toggleForm() {
+        const form = document.getElementById("form");
+        form.style.display = form.style.display === "none" ? "block" : "none";
+    }
+
+    function addReview() {
+        const vorname = document.getElementById("vorname").value;
+        const nachname = document.getElementById("nachname").value;
+        const kommentar = document.getElementById("kommentar").value;
+
+        if (!vorname || !nachname || !kommentar) {
+            alert("Bitte alle Felder ausfüllen");
+            return;
+        }
+
+        reviews.push({
+            vorname,
+            nachname,
+            kommentar,
+            likes: 0
+        });
+
+        localStorage.setItem("reviews", JSON.stringify(reviews));
+
+        document.getElementById("vorname").value = "";
+        document.getElementById("nachname").value = "";
+        document.getElementById("kommentar").value = "";
+
+        renderReviews();
+    }
+
+    function likeReview(index) {
+        reviews[index].likes++;
+        localStorage.setItem("reviews", JSON.stringify(reviews));
+        renderReviews();
+    }
+
+    function renderReviews() {
+        const container = document.getElementById("reviews");
+        container.innerHTML = "";
+
+        reviews.forEach((r, i) => {
+            container.innerHTML += `
+                <div class="review">
+                    <strong>${r.vorname} ${r.nachname}</strong>
+                    <p>${r.kommentar}</p>
+                    <button class="like-btn" onclick="likeReview(${i})">
+                        ❤️ ${r.likes}
+                    </button>
+                </div>
+            `;
+        });
+    }
+
+    renderReviews();
+</script>
+
+</body>
+</html>
