@@ -3,57 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <title>student h@te</title>
+
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
             margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
         }
 
         header {
-            background: #222;
+            background: rgba(0,0,0,0.7);
             color: white;
+            padding: 20px;
+            position: relative;
+        }
+
+        header h1 {
+            margin: 0;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .info-box {
+            background: white;
+            color: #333;
+            max-width: 700px;
+            margin: 20px auto;
             padding: 15px;
             text-align: center;
-            font-size: 24px;
+            border-radius: 8px;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .add-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            font-size: 28px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
 
         .container {
             max-width: 800px;
-            margin: 20px auto;
-            padding: 10px;
-        }
-
-        .add-btn {
-            font-size: 30px;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            background: #4CAF50;
-            color: white;
+            margin: 0 auto;
+            padding: 15px;
         }
 
         .form {
             display: none;
             background: white;
             padding: 15px;
-            margin-top: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        .form input, .form textarea {
+        .form input,
+        .form textarea {
             width: 100%;
             padding: 8px;
             margin: 8px 0;
+            font-size: 14px;
         }
 
         .form button {
-            padding: 8px 15px;
             background: #4CAF50;
             color: white;
             border: none;
+            padding: 10px;
             cursor: pointer;
         }
 
@@ -61,24 +84,31 @@
             background: white;
             padding: 15px;
             margin-top: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
 
         .like-btn {
-            cursor: pointer;
-            color: #e91e63;
-            border: none;
             background: none;
+            border: none;
+            color: #e91e63;
             font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-<header>student h@te</header>
+<header>
+    <h1>student h@te</h1>
+    <button class="add-btn" onclick="toggleForm()">+</button>
+</header>
+
+<div class="info-box">
+    Hier kannst du deine Studenten Bewerten!
+</div>
 
 <div class="container">
-    <button class="add-btn" onclick="toggleForm()">+</button>
 
     <div class="form" id="form">
         <input type="text" id="vorname" placeholder="Vorname">
@@ -99,12 +129,12 @@
     }
 
     function addReview() {
-        const vorname = document.getElementById("vorname").value;
-        const nachname = document.getElementById("nachname").value;
-        const kommentar = document.getElementById("kommentar").value;
+        const vorname = document.getElementById("vorname").value.trim();
+        const nachname = document.getElementById("nachname").value.trim();
+        const kommentar = document.getElementById("kommentar").value.trim();
 
         if (!vorname || !nachname || !kommentar) {
-            alert("Bitte alle Felder ausfüllen");
+            alert("Bitte alle Felder ausfüllen!");
             return;
         }
 
@@ -115,40 +145,4 @@
             likes: 0
         });
 
-        localStorage.setItem("reviews", JSON.stringify(reviews));
-
-        document.getElementById("vorname").value = "";
-        document.getElementById("nachname").value = "";
-        document.getElementById("kommentar").value = "";
-
-        renderReviews();
-    }
-
-    function likeReview(index) {
-        reviews[index].likes++;
-        localStorage.setItem("reviews", JSON.stringify(reviews));
-        renderReviews();
-    }
-
-    function renderReviews() {
-        const container = document.getElementById("reviews");
-        container.innerHTML = "";
-
-        reviews.forEach((r, i) => {
-            container.innerHTML += `
-                <div class="review">
-                    <strong>${r.vorname} ${r.nachname}</strong>
-                    <p>${r.kommentar}</p>
-                    <button class="like-btn" onclick="likeReview(${i})">
-                        ❤️ ${r.likes}
-                    </button>
-                </div>
-            `;
-        });
-    }
-
-    renderReviews();
-</script>
-
-</body>
-</html>
+        saveAndRender
