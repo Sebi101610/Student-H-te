@@ -89,6 +89,18 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
 
+        /* ⭐ TOP KOMMENTAR ANIMATION ⭐ */
+        .top-review {
+            border: 3px solid gold;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 10px gold; }
+            50% { transform: scale(1.03); box-shadow: 0 0 20px gold; }
+            100% { transform: scale(1); box-shadow: 0 0 10px gold; }
+        }
+
         .like-btn {
             background: none;
             border: none;
@@ -126,11 +138,7 @@
 
     function toggleForm() {
         const form = document.getElementById("form");
-        if (form.style.display === "block") {
-            form.style.display = "none";
-        } else {
-            form.style.display = "block";
-        }
+        form.style.display = form.style.display === "block" ? "none" : "block";
     }
 
     function addReview() {
@@ -144,9 +152,9 @@
         }
 
         reviews.push({
-            vorname: vorname,
-            nachname: nachname,
-            kommentar: kommentar,
+            vorname,
+            nachname,
+            kommentar,
             likes: 0
         });
 
@@ -172,12 +180,15 @@
         const container = document.getElementById("reviews");
         container.innerHTML = "";
 
+        // Sortieren: meiste Likes zuerst
         const sorted = [...reviews].sort((a, b) => b.likes - a.likes);
 
-        sorted.forEach(r => {
+        sorted.forEach((r, i) => {
             const index = reviews.indexOf(r);
+            const topClass = i === 0 && r.likes > 0 ? "top-review" : "";
+
             container.innerHTML += `
-                <div class="review">
+                <div class="review ${topClass}">
                     <strong>${r.vorname} ${r.nachname}</strong>
                     <p>${r.kommentar}</p>
                     <button class="like-btn" onclick="likeReview(${index})">
