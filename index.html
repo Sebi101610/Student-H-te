@@ -1,114 +1,88 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>student h@te</title>
+<meta charset="UTF-8">
+<title>student h@te</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-        header {
-            background: rgba(0,0,0,0.75);
-            color: white;
-            padding: 20px;
-            position: relative;
-        }
-
-        header h1 {
-            margin: 0;
-            text-align: center;
-            font-size: 28px;
-        }
-
-        .add-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 45px;
-            height: 45px;
-            font-size: 28px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        .info-box {
-            background: white;
-            color: #333;
-            max-width: 700px;
-            margin: 20px auto;
-            padding: 15px;
-            text-align: center;
-            border-radius: 8px;
-            font-size: 18px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-
-        .form {
-            display: none;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-        }
-
-        .form input,
-        .form textarea {
-            width: 100%;
-            padding: 8px;
-            margin: 8px 0;
-            font-size: 14px;
-        }
-
-        .form button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-        }
-
-        .review {
-            background: white;
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        }
-
-        /* ⭐ TOP KOMMENTAR ANIMATION ⭐ */
-        .top-review {
-            border: 3px solid gold;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 10px gold; }
-            50% { transform: scale(1.03); box-shadow: 0 0 20px gold; }
-            100% { transform: scale(1); box-shadow: 0 0 10px gold; }
-        }
-
-        .like-btn {
-            background: none;
-            border: none;
-            color: #e91e63;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+}
+header{
+    background:rgba(0,0,0,0.75);
+    color:white;
+    padding:20px;
+    position:relative;
+    text-align:center;
+}
+.add-btn{
+    position:absolute;
+    top:20px;
+    right:20px;
+    width:45px;
+    height:45px;
+    font-size:28px;
+    background:#4CAF50;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+.info-box{
+    background:white;
+    max-width:700px;
+    margin:20px auto;
+    padding:15px;
+    text-align:center;
+    border-radius:8px;
+}
+.container{
+    max-width:800px;
+    margin:auto;
+    padding:15px;
+}
+.form{
+    display:none;
+    background:white;
+    padding:15px;
+    border-radius:8px;
+    margin-bottom:20px;
+}
+.form input,.form textarea{
+    width:100%;
+    margin:8px 0;
+    padding:8px;
+}
+.review{
+    background:white;
+    padding:15px;
+    margin-top:15px;
+    border-radius:8px;
+    transition:transform 0.6s ease;
+}
+.top{
+    border:3px solid gold;
+}
+.slide{
+    animation:slideTop 0.6s ease;
+}
+@keyframes slideTop{
+    from{transform:translateY(40px);}
+    to{transform:translateY(0);}
+}
+.like-btn{
+    background:none;
+    border:none;
+    font-size:16px;
+    color:#e91e63;
+    cursor:pointer;
+}
+</style>
 </head>
 <body>
 
@@ -122,84 +96,74 @@
 </div>
 
 <div class="container">
-
     <div class="form" id="form">
-        <input type="text" id="vorname" placeholder="Vorname">
-        <input type="text" id="nachname" placeholder="Nachname">
+        <input id="vorname" placeholder="Vorname">
+        <input id="nachname" placeholder="Nachname">
         <textarea id="kommentar" placeholder="Kommentar"></textarea>
-        <button onclick="addReview()">Bewertung hinzufügen</button>
+        <button onclick="addReview()">Hinzufügen</button>
     </div>
-
     <div id="reviews"></div>
 </div>
 
 <script>
-    let reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+/* 🔥 DEINE FIREBASE DATEN HIER EINSETZEN */
+const firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJEKT.firebaseapp.com",
+    projectId: "DEIN_PROJEKT_ID"
+};
 
-    function toggleForm() {
-        const form = document.getElementById("form");
-        form.style.display = form.style.display === "block" ? "none" : "block";
-    }
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    function addReview() {
-        const vorname = document.getElementById("vorname").value.trim();
-        const nachname = document.getElementById("nachname").value.trim();
-        const kommentar = document.getElementById("kommentar").value.trim();
+let lastTopId = null;
 
-        if (!vorname || !nachname || !kommentar) {
-            alert("Bitte alle Felder ausfüllen!");
-            return;
-        }
+function toggleForm(){
+    const f=document.getElementById("form");
+    f.style.display=f.style.display==="block"?"none":"block";
+}
 
-        reviews.push({
-            vorname,
-            nachname,
-            kommentar,
-            likes: 0
-        });
+function addReview(){
+    const v=vorname.value.trim();
+    const n=nachname.value.trim();
+    const k=kommentar.value.trim();
+    if(!v||!n||!k)return alert("Alle Felder ausfüllen!");
+    db.collection("reviews").add({
+        vorname:v,
+        nachname:n,
+        kommentar:k,
+        likes:0,
+        time:Date.now()
+    });
+    form.style.display="none";
+    vorname.value=nachname.value=kommentar.value="";
+}
 
-        saveAndRender();
+function like(id,likes){
+    db.collection("reviews").doc(id).update({likes:likes+1});
+}
 
-        document.getElementById("vorname").value = "";
-        document.getElementById("nachname").value = "";
-        document.getElementById("kommentar").value = "";
-        document.getElementById("form").style.display = "none";
-    }
+db.collection("reviews")
+.orderBy("likes","desc")
+.onSnapshot(snap=>{
+    const c=document.getElementById("reviews");
+    c.innerHTML="";
+    snap.forEach((doc,i)=>{
+        const r=doc.data();
+        const isTop=i===0;
+        const slide=isTop && doc.id!==lastTopId?"slide":"";
+        if(isTop) lastTopId=doc.id;
 
-    function likeReview(index) {
-        reviews[index].likes++;
-        saveAndRender();
-    }
-
-    function saveAndRender() {
-        localStorage.setItem("reviews", JSON.stringify(reviews));
-        renderReviews();
-    }
-
-    function renderReviews() {
-        const container = document.getElementById("reviews");
-        container.innerHTML = "";
-
-        // Sortieren: meiste Likes zuerst
-        const sorted = [...reviews].sort((a, b) => b.likes - a.likes);
-
-        sorted.forEach((r, i) => {
-            const index = reviews.indexOf(r);
-            const topClass = i === 0 && r.likes > 0 ? "top-review" : "";
-
-            container.innerHTML += `
-                <div class="review ${topClass}">
-                    <strong>${r.vorname} ${r.nachname}</strong>
-                    <p>${r.kommentar}</p>
-                    <button class="like-btn" onclick="likeReview(${index})">
-                        ❤️ ${r.likes}
-                    </button>
-                </div>
-            `;
-        });
-    }
-
-    renderReviews();
+        c.innerHTML+=`
+        <div class="review ${isTop?"top":""} ${slide}">
+            <strong>${r.vorname} ${r.nachname}</strong>
+            <p>${r.kommentar}</p>
+            <button class="like-btn" onclick="like('${doc.id}',${r.likes})">
+                ❤️ ${r.likes}
+            </button>
+        </div>`;
+    });
+});
 </script>
 
 </body>
