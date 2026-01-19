@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>student h@te</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -98,8 +99,8 @@ header{
 </div>
 
 <script>
-/* 🔥 FIREBASE CONFIG */
-    const firebaseConfig = {
+/* 🔥 DEINE FIREBASE CONFIG (EINGEFÜGT) */
+const firebaseConfig = {
   apiKey: "AIzaSyDxCMyTDgjlFPOsfILq7jkQzZ5K5yITBvU",
   authDomain: "student-hate.firebaseapp.com",
   projectId: "student-hate",
@@ -112,6 +113,7 @@ header{
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
 let oldPositions = new Map();
 
 function toggleForm(){
@@ -119,36 +121,62 @@ function toggleForm(){
 }
 
 function addReview(){
-    if(!vorname.value || !nachname.value || !kommentar.value) return;
+    if(!vorname.value || !nachname.value || !kommentar.value){
+        alert("Bitte alle Felder ausfüllen!");
+        return;
+    }
+
     db.collection("reviews").add({
         vorname: vorname.value,
         nachname: nachname.value,
         kommentar: kommentar.value,
         likes: 0,
-        time: Date.now()
+        createdAt: Date.now()
     });
+
     form.style.display="none";
-    vorname.value=nachname.value=kommentar.value="";
+    vorname.value = nachname.value = kommentar.value = "";
 }
 
 function like(id, likes){
-    db.collection("reviews").doc(id).update({likes: likes + 1});
+    db.collection("reviews").doc(id).update({ likes: likes + 1 });
 }
 
+/* 🧹 ALTE KOMMENTARE (> 1 WOCHE) LÖSCHEN */
+function cleanupOldReviews(){
+    const limit = Date.now() - ONE_WEEK;
+    db.collection("reviews")
+      .where("createdAt","<",limit)
+      .get()
+      .then(snap=>{
+          snap.forEach(doc => doc.ref.delete());
+      });
+}
+
+cleanupOldReviews();
+
+/* 🔄 LIVE + ANIMATION (FLIP) */
 db.collection("reviews")
-.orderBy("likes","desc")
+.where("createdAt",">",Date.now() - ONE_WEEK)
+.orderBy("createdAt")
 .onSnapshot(snapshot => {
+
     const container = document.getElementById("reviews");
 
-    // 1️⃣ Alte Positionen speichern
+    // Alte Positionen speichern
     oldPositions.clear();
     [...container.children].forEach(el=>{
         oldPositions.set(el.dataset.id, el.getBoundingClientRect().top);
     });
 
-    // 2️⃣ Neu rendern
-    container.innerHTML="";
-    snapshot.forEach((doc,i)=>{
+    // Sortieren nach Likes
+    const docs = snapshot.docs.sort(
+        (a,b)=>b.data().likes - a.data().likes
+    );
+
+    container.innerHTML = "";
+
+    docs.forEach((doc,i)=>{
         const r = doc.data();
         const div = document.createElement("div");
         div.className = "review" + (i===0 ? " top" : "");
@@ -163,7 +191,7 @@ db.collection("reviews")
         container.appendChild(div);
     });
 
-    // 3️⃣ FLIP-Animation
+    // FLIP Animation
     [...container.children].forEach(el=>{
         const oldTop = oldPositions.get(el.dataset.id);
         if(oldTop !== undefined){
