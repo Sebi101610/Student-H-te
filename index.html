@@ -2,11 +2,13 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>student h@te</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
 body{
@@ -15,7 +17,7 @@ body{
     background:linear-gradient(135deg,#667eea,#764ba2);
 }
 header{
-    background:rgba(0,0,0,0.8);
+    background:rgba(0,0,0,0.85);
     color:white;
     padding:20px;
     position:relative;
@@ -35,23 +37,22 @@ header{
 }
 .info-box{
     background:white;
-    max-width:700px;
-    margin:20px auto;
+    max-width:800px;
+    margin:15px auto;
     padding:15px;
-    text-align:center;
     border-radius:8px;
+    text-align:center;
 }
 .container{
     max-width:800px;
     margin:auto;
-    padding:15px;
+    padding:10px;
 }
 .form{
     display:none;
     background:white;
     padding:15px;
     border-radius:8px;
-    margin-bottom:20px;
 }
 .form input,.form textarea{
     width:100%;
@@ -67,22 +68,43 @@ header{
 }
 .top{
     border:3px solid gold;
+    background:#fffbe6;
 }
 .like-btn{
     background:none;
     border:none;
-    font-size:16px;
-    color:#e91e63;
+    font-size:15px;
     cursor:pointer;
+    margin-right:10px;
+}
+.auth input{
+    padding:8px;
+    margin:5px;
+}
+
+/* 📱 Mobile */
+@media(max-width:600px){
+    header h1{font-size:20px;}
+    .add-btn{width:40px;height:40px;font-size:24px;}
+    .auth input{width:90%;display:block;margin:auto;}
 }
 </style>
 </head>
+
 <body>
 
 <header>
     <h1>student h@te</h1>
     <button class="add-btn" onclick="toggleForm()">+</button>
 </header>
+
+<div class="info-box auth">
+    <input id="email" placeholder="E-Mail">
+    <input id="password" type="password" placeholder="Passwort">
+    <button onclick="register()">Registrieren</button>
+    <button onclick="login()">Login</button>
+    <p id="userInfo"></p>
+</div>
 
 <div class="info-box">
     Hier kannst du deine Studenten Bewerten!
@@ -99,108 +121,146 @@ header{
 </div>
 
 <script>
-/* 🔥 DEINE FIREBASE CONFIG (EINGEFÜGT) */
+/* 🔥 Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyDxCMyTDgjlFPOsfILq7jkQzZ5K5yITBvU",
   authDomain: "student-hate.firebaseapp.com",
   projectId: "student-hate",
   storageBucket: "student-hate.firebasestorage.app",
   messagingSenderId: "268571338314",
-  appId: "1:268571338314:web:0fa59f26a5e41569a368b3",
-  measurementId: "G-VJZYNNGPZY"
+  appId: "1:268571338314:web:0fa59f26a5e41569a368b3"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
-let oldPositions = new Map();
+/* 🔊 Sound */
+const crownSound = new Audio("https://www.myinstants.com/media/sounds/notification.mp3");
+let lastTopId = null;
 
-function toggleForm(){
-    form.style.display = form.style.display === "block" ? "none" : "block";
+/* 🛑 Bad Words */
+const badWords = ["idiot","dumm","scheiße","arsch","fuck"];
+function filterBadWords(text){
+    let t=text;
+    badWords.forEach(w=>{
+        t=t.replace(new RegExp(w,"gi"),"***");
+    });
+    return t;
 }
 
-function addReview(){
-    if(!vorname.value || !nachname.value || !kommentar.value){
-        alert("Bitte alle Felder ausfüllen!");
-        return;
+/* 🔐 Auth */
+function register(){
+    auth.createUserWithEmailAndPassword(email.value,password.value)
+    .then(()=>alert("Registriert!"))
+    .catch(e=>alert(e.message));
+}
+function login(){
+    auth.signInWithEmailAndPassword(email.value,password.value)
+    .catch(e=>alert(e.message));
+}
+function logout(){auth.signOut();}
+auth.onAuthStateChanged(user=>{
+    if(user){
+        userInfo.innerHTML=`Eingeloggt als <b>${user.email}</b>
+        <button onclick="logout()">Logout</button>`;
+        window.currentUser=user;
+    }else{
+        userInfo.innerHTML="Bitte registrieren oder einloggen";
+        window.currentUser=null;
     }
+});
 
+/* ➕ Formular */
+function toggleForm(){
+    if(!currentUser){alert("Bitte einloggen!");return;}
+    form.style.display=form.style.display==="block"?"none":"block";
+}
+
+/* 💬 Kommentar */
+const ONE_WEEK=7*24*60*60*1000;
+function addReview(){
+    if(!currentUser)return;
+    if(!vorname.value||!nachname.value||!kommentar.value)return;
     db.collection("reviews").add({
-        vorname: vorname.value,
-        nachname: nachname.value,
-        kommentar: kommentar.value,
-        likes: 0,
-        createdAt: Date.now()
+        uid:currentUser.uid,
+        vorname:vorname.value,
+        nachname:nachname.value,
+        kommentar:kommentar.value,
+        likes:0,
+        createdAt:Date.now()
     });
-
     form.style.display="none";
-    vorname.value = nachname.value = kommentar.value = "";
+    vorname.value=nachname.value=kommentar.value="";
+}
+function like(id,likes){
+    if(!currentUser){alert("Bitte einloggen");return;}
+    db.collection("reviews").doc(id).update({likes:likes+1});
+}
+function report(id){
+    db.collection("reports").add({reviewId:id,time:Date.now()});
+    alert("Kommentar gemeldet");
 }
 
-function like(id, likes){
-    db.collection("reviews").doc(id).update({ likes: likes + 1 });
-}
-
-/* 🧹 ALTE KOMMENTARE (> 1 WOCHE) LÖSCHEN */
-function cleanupOldReviews(){
-    const limit = Date.now() - ONE_WEEK;
-    db.collection("reviews")
-      .where("createdAt","<",limit)
-      .get()
-      .then(snap=>{
-          snap.forEach(doc => doc.ref.delete());
-      });
-}
-
-cleanupOldReviews();
-
-/* 🔄 LIVE + ANIMATION (FLIP) */
+/* 🧹 Cleanup */
 db.collection("reviews")
-.where("createdAt",">",Date.now() - ONE_WEEK)
-.orderBy("createdAt")
-.onSnapshot(snapshot => {
+.where("createdAt","<",Date.now()-ONE_WEEK)
+.get().then(s=>s.forEach(d=>d.ref.delete()));
 
-    const container = document.getElementById("reviews");
+/* 🎬 Animation */
+const container=document.getElementById("reviews");
+const elements=new Map();
 
-    // Alte Positionen speichern
-    oldPositions.clear();
+db.collection("reviews")
+.where("createdAt",">",Date.now()-ONE_WEEK)
+.onSnapshot(snap=>{
+    const data=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .sort((a,b)=>b.likes-a.likes);
+
+    const first=new Map();
     [...container.children].forEach(el=>{
-        oldPositions.set(el.dataset.id, el.getBoundingClientRect().top);
+        first.set(el.dataset.id,el.getBoundingClientRect().top);
     });
 
-    // Sortieren nach Likes
-    const docs = snapshot.docs.sort(
-        (a,b)=>b.data().likes - a.data().likes
-    );
+    data.forEach((r,i)=>{
+        let el=elements.get(r.id);
+        if(!el){
+            el=document.createElement("div");
+            el.className="review";
+            el.dataset.id=r.id;
+            elements.set(r.id,el);
+            container.appendChild(el);
+        }
 
-    container.innerHTML = "";
+        if(i===0){
+            el.classList.add("top");
+            if(lastTopId!==r.id){
+                crownSound.play();
+                lastTopId=r.id;
+            }
+        }else el.classList.remove("top");
 
-    docs.forEach((doc,i)=>{
-        const r = doc.data();
-        const div = document.createElement("div");
-        div.className = "review" + (i===0 ? " top" : "");
-        div.dataset.id = doc.id;
-        div.innerHTML = `
-            <strong>${r.vorname} ${r.nachname}</strong>
-            <p>${r.kommentar}</p>
-            <button class="like-btn" onclick="like('${doc.id}',${r.likes})">
-                ❤️ ${r.likes}
-            </button>
-        `;
-        container.appendChild(div);
+        el.innerHTML=`
+        <strong>${i===0?"👑 ":""}${r.vorname} ${r.nachname}</strong>
+        <p>${filterBadWords(r.kommentar)}</p>
+        <button class="like-btn" onclick="like('${r.id}',${r.likes})">❤️ ${r.likes}</button>
+        <button class="like-btn" onclick="report('${r.id}')">🚩 Melden</button>`;
     });
 
-    // FLIP Animation
+    data.forEach(r=>container.appendChild(elements.get(r.id)));
+
     [...container.children].forEach(el=>{
-        const oldTop = oldPositions.get(el.dataset.id);
-        if(oldTop !== undefined){
-            const newTop = el.getBoundingClientRect().top;
-            const delta = oldTop - newTop;
-            if(delta !== 0){
-                el.style.transform = `translateY(${delta}px)`;
-                el.offsetHeight;
-                el.style.transform = "";
+        const last=el.getBoundingClientRect().top;
+        const firstTop=first.get(el.dataset.id);
+        if(firstTop!==undefined){
+            const delta=firstTop-last;
+            if(delta){
+                el.style.transform=`translateY(${delta}px)`;
+                el.style.transition="transform 0s";
+                requestAnimationFrame(()=>{
+                    el.style.transition="transform 0.6s ease";
+                    el.style.transform="";
+                });
             }
         }
     });
