@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>student h@te</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -15,7 +14,7 @@ body{
     background:linear-gradient(135deg,#667eea,#764ba2);
 }
 header{
-    background:rgba(0,0,0,0.75);
+    background:rgba(0,0,0,0.8);
     color:white;
     padding:20px;
     position:relative;
@@ -68,13 +67,6 @@ header{
 .top{
     border:3px solid gold;
 }
-.slide{
-    animation:slideTop 0.6s ease;
-}
-@keyframes slideTop{
-    from{transform:translateY(40px);}
-    to{transform:translateY(0);}
-}
 .like-btn{
     background:none;
     border:none;
@@ -106,7 +98,7 @@ header{
 </div>
 
 <script>
-/* 🔥 DEINE FIREBASE DATEN HIER EINSETZEN */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
     apiKey: "DEIN_API_KEY",
     authDomain: "DEIN_PROJEKT.firebaseapp.com",
@@ -116,52 +108,69 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let lastTopId = null;
+let oldPositions = new Map();
 
 function toggleForm(){
-    const f=document.getElementById("form");
-    f.style.display=f.style.display==="block"?"none":"block";
+    form.style.display = form.style.display === "block" ? "none" : "block";
 }
 
 function addReview(){
-    const v=vorname.value.trim();
-    const n=nachname.value.trim();
-    const k=kommentar.value.trim();
-    if(!v||!n||!k)return alert("Alle Felder ausfüllen!");
+    if(!vorname.value || !nachname.value || !kommentar.value) return;
     db.collection("reviews").add({
-        vorname:v,
-        nachname:n,
-        kommentar:k,
-        likes:0,
-        time:Date.now()
+        vorname: vorname.value,
+        nachname: nachname.value,
+        kommentar: kommentar.value,
+        likes: 0,
+        time: Date.now()
     });
     form.style.display="none";
     vorname.value=nachname.value=kommentar.value="";
 }
 
-function like(id,likes){
-    db.collection("reviews").doc(id).update({likes:likes+1});
+function like(id, likes){
+    db.collection("reviews").doc(id).update({likes: likes + 1});
 }
 
 db.collection("reviews")
 .orderBy("likes","desc")
-.onSnapshot(snap=>{
-    const c=document.getElementById("reviews");
-    c.innerHTML="";
-    snap.forEach((doc,i)=>{
-        const r=doc.data();
-        const isTop=i===0;
-        const slide=isTop && doc.id!==lastTopId?"slide":"";
-        if(isTop) lastTopId=doc.id;
+.onSnapshot(snapshot => {
+    const container = document.getElementById("reviews");
 
-        c.innerHTML+=`
-        <div class="review ${isTop?"top":""} ${slide}">
+    // 1️⃣ Alte Positionen speichern
+    oldPositions.clear();
+    [...container.children].forEach(el=>{
+        oldPositions.set(el.dataset.id, el.getBoundingClientRect().top);
+    });
+
+    // 2️⃣ Neu rendern
+    container.innerHTML="";
+    snapshot.forEach((doc,i)=>{
+        const r = doc.data();
+        const div = document.createElement("div");
+        div.className = "review" + (i===0 ? " top" : "");
+        div.dataset.id = doc.id;
+        div.innerHTML = `
             <strong>${r.vorname} ${r.nachname}</strong>
             <p>${r.kommentar}</p>
             <button class="like-btn" onclick="like('${doc.id}',${r.likes})">
                 ❤️ ${r.likes}
             </button>
-        </div>`;
+        `;
+        container.appendChild(div);
+    });
+
+    // 3️⃣ FLIP-Animation
+    [...container.children].forEach(el=>{
+        const oldTop = oldPositions.get(el.dataset.id);
+        if(oldTop !== undefined){
+            const newTop = el.getBoundingClientRect().top;
+            const delta = oldTop - newTop;
+            if(delta !== 0){
+                el.style.transform = `translateY(${delta}px)`;
+                el.offsetHeight;
+                el.style.transform = "";
+            }
+        }
     });
 });
 </script>
