@@ -11,113 +11,44 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial,sans-serif;
-    background:linear-gradient(135deg,#667eea,#764ba2);
-}
-header{
-    background:rgba(0,0,0,0.85);
-    color:white;
-    padding:20px;
-    position:relative;
-    text-align:center;
-}
-.add-btn{
-    position:absolute;
-    top:20px;
-    right:20px;
-    width:45px;
-    height:45px;
-    font-size:28px;
-    background:#4CAF50;
-    color:white;
-    border:none;
-    cursor:pointer;
-}
-.info-box{
-    background:white;
-    max-width:800px;
-    margin:15px auto;
-    padding:15px;
-    border-radius:8px;
-    text-align:center;
-}
-.container{
-    max-width:800px;
-    margin:auto;
-    padding:10px;
-}
-.form{
-    display:none;
-    background:white;
-    padding:15px;
-    border-radius:8px;
-}
-.form input,.form textarea{
-    width:100%;
-    margin:8px 0;
-    padding:8px;
-}
-.review{
-    background:white;
-    padding:15px;
-    margin-top:15px;
-    border-radius:8px;
-    transition:transform 0.6s ease;
-}
-.top{
-    border:3px solid gold;
-    background:#fffbe6;
-}
-.like-btn{
-    background:none;
-    border:none;
-    font-size:15px;
-    cursor:pointer;
-    margin-right:10px;
-}
-.auth input{
-    padding:8px;
-    margin:5px;
-}
-
-/* 📱 Mobile */
-@media(max-width:600px){
-    header h1{font-size:20px;}
-    .add-btn{width:40px;height:40px;font-size:24px;}
-    .auth input{width:90%;display:block;margin:auto;}
-}
+body{margin:0;font-family:Arial;background:linear-gradient(135deg,#667eea,#764ba2);}
+header{background:#000;color:#fff;padding:20px;text-align:center;position:relative;}
+.add-btn{position:absolute;right:20px;top:20px;width:45px;height:45px;font-size:28px;}
+.info{background:#fff;margin:10px auto;padding:15px;max-width:800px;border-radius:8px;text-align:center;}
+.container{max-width:800px;margin:auto;padding:10px;}
+.form{display:none;background:#fff;padding:15px;border-radius:8px;}
+.review{background:#fff;padding:15px;margin-top:15px;border-radius:8px;transition:transform .6s;}
+.top{border:3px solid gold;background:#fffbe6;}
+button{cursor:pointer;}
+@media(max-width:600px){.add-btn{width:40px;height:40px;font-size:24px;}}
 </style>
 </head>
 
 <body>
 
 <header>
-    <h1>student h@te</h1>
-    <button class="add-btn" onclick="toggleForm()">+</button>
+<h1>student h@te</h1>
+<button class="add-btn" onclick="toggleForm()">+</button>
 </header>
 
-<div class="info-box auth">
-    <input id="email" placeholder="E-Mail">
-    <input id="password" type="password" placeholder="Passwort">
-    <button onclick="register()">Registrieren</button>
-    <button onclick="login()">Login</button>
-    <p id="userInfo"></p>
+<div class="info">
+<input id="email" placeholder="E-Mail">
+<input id="password" type="password" placeholder="Passwort">
+<button onclick="register()">Registrieren</button>
+<button onclick="login()">Login</button>
+<p id="userInfo"></p>
 </div>
 
-<div class="info-box">
-    Hier kannst du deine Studenten Bewerten!
-</div>
+<div class="info">Hier kannst du deine Studenten Bewerten!</div>
 
 <div class="container">
-    <div class="form" id="form">
-        <input id="vorname" placeholder="Vorname">
-        <input id="nachname" placeholder="Nachname">
-        <textarea id="kommentar" placeholder="Kommentar"></textarea>
-        <button onclick="addReview()">Hinzufügen</button>
-    </div>
-    <div id="reviews"></div>
+<div class="form" id="form">
+<input id="vorname" placeholder="Vorname">
+<input id="nachname" placeholder="Nachname">
+<textarea id="kommentar" placeholder="Kommentar"></textarea>
+<button onclick="addReview()">Hinzufügen</button>
+</div>
+<div id="reviews"></div>
 </div>
 
 <script>
@@ -135,135 +66,137 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+/* 👑 ADMIN */
+const ADMIN_EMAIL = "sebas.brock@mstud.ch";
+/* SHA-256 Hash von deinem Admin-Passwort */
+const ADMIN_PASSWORD_HASH = "HIER_DEIN_HASH_EINFÜGEN";
+
 /* 🔊 Sound */
-const crownSound = new Audio("https://www.myinstants.com/media/sounds/notification.mp3");
-let lastTopId = null;
+const sound = new Audio("https://www.myinstants.com/media/sounds/notification.mp3");
+let lastTop = null;
 
 /* 🛑 Bad Words */
-const badWords = ["idiot","dumm","scheiße","arsch","fuck"];
-function filterBadWords(text){
-    let t=text;
-    badWords.forEach(w=>{
-        t=t.replace(new RegExp(w,"gi"),"***");
-    });
-    return t;
-}
+const badWords=["idiot","dumm","arsch","scheiße"];
+const filter=t=>badWords.reduce((a,w)=>a.replace(new RegExp(w,"gi"),"***"),t);
 
 /* 🔐 Auth */
 function register(){
-    auth.createUserWithEmailAndPassword(email.value,password.value)
-    .then(()=>alert("Registriert!"))
-    .catch(e=>alert(e.message));
+ auth.createUserWithEmailAndPassword(email.value,password.value)
+ .catch(e=>alert(e.message));
 }
 function login(){
-    auth.signInWithEmailAndPassword(email.value,password.value)
-    .catch(e=>alert(e.message));
+ auth.signInWithEmailAndPassword(email.value,password.value)
+ .catch(e=>alert(e.message));
 }
 function logout(){auth.signOut();}
-auth.onAuthStateChanged(user=>{
-    if(user){
-        userInfo.innerHTML=`Eingeloggt als <b>${user.email}</b>
-        <button onclick="logout()">Logout</button>`;
-        window.currentUser=user;
-    }else{
-        userInfo.innerHTML="Bitte registrieren oder einloggen";
-        window.currentUser=null;
-    }
+
+auth.onAuthStateChanged(u=>{
+ if(u){
+   window.currentUser=u;
+   window.isAdmin=u.email===ADMIN_EMAIL;
+   userInfo.innerHTML=`${u.email} ${isAdmin?"👑 Admin":""}
+   <button onclick="logout()">Logout</button>`;
+ }else{
+   window.currentUser=null;
+   window.isAdmin=false;
+   userInfo.innerHTML="Bitte einloggen";
+ }
 });
 
-/* ➕ Formular */
+/* ➕ */
 function toggleForm(){
-    if(!currentUser){alert("Bitte einloggen!");return;}
-    form.style.display=form.style.display==="block"?"none":"block";
+ if(!currentUser){alert("Login nötig");return;}
+ form.style.display=form.style.display==="block"?"none":"block";
 }
 
-/* 💬 Kommentar */
-const ONE_WEEK=7*24*60*60*1000;
+/* 💬 */
+const WEEK=7*24*60*60*1000;
 function addReview(){
-    if(!currentUser)return;
-    if(!vorname.value||!nachname.value||!kommentar.value)return;
-    db.collection("reviews").add({
-        uid:currentUser.uid,
-        vorname:vorname.value,
-        nachname:nachname.value,
-        kommentar:kommentar.value,
-        likes:0,
-        createdAt:Date.now()
-    });
-    form.style.display="none";
-    vorname.value=nachname.value=kommentar.value="";
+ if(!currentUser)return;
+ if(!vorname.value||!nachname.value||!kommentar.value)return;
+ db.collection("reviews").add({
+   uid:currentUser.uid,
+   vorname:vorname.value,
+   nachname:nachname.value,
+   kommentar:kommentar.value,
+   likes:0,
+   createdAt:Date.now()
+ });
+ form.style.display="none";
+ vorname.value=nachname.value=kommentar.value="";
 }
-function like(id,likes){
-    if(!currentUser){alert("Bitte einloggen");return;}
-    db.collection("reviews").doc(id).update({likes:likes+1});
+function like(id,l){
+ if(!currentUser)return;
+ db.collection("reviews").doc(id).update({likes:l+1});
 }
 function report(id){
-    db.collection("reports").add({reviewId:id,time:Date.now()});
-    alert("Kommentar gemeldet");
+ db.collection("reports").add({id,time:Date.now()});
+ alert("Gemeldet");
 }
 
-/* 🧹 Cleanup */
-db.collection("reviews")
-.where("createdAt","<",Date.now()-ONE_WEEK)
-.get().then(s=>s.forEach(d=>d.ref.delete()));
+/* 🔑 Admin Passwort */
+async function checkAdmin(){
+ const pw=prompt("Admin Passwort:");
+ if(!pw)return false;
+ const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
+ const hash=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+ return hash===ADMIN_PASSWORD_HASH;
+}
+async function deleteReview(id){
+ if(!isAdmin)return;
+ if(!(await checkAdmin())){alert("Falsch");return;}
+ if(confirm("Wirklich löschen?")) db.collection("reviews").doc(id).delete();
+}
 
 /* 🎬 Animation */
-const container=document.getElementById("reviews");
-const elements=new Map();
+const box=document.getElementById("reviews");
+const map=new Map();
 
 db.collection("reviews")
-.where("createdAt",">",Date.now()-ONE_WEEK)
-.onSnapshot(snap=>{
-    const data=snap.docs.map(d=>({id:d.id,...d.data()}))
-        .sort((a,b)=>b.likes-a.likes);
+.where("createdAt",">",Date.now()-WEEK)
+.onSnapshot(s=>{
+ const data=s.docs.map(d=>({id:d.id,...d.data()}))
+ .sort((a,b)=>b.likes-a.likes);
 
-    const first=new Map();
-    [...container.children].forEach(el=>{
-        first.set(el.dataset.id,el.getBoundingClientRect().top);
-    });
+ const first=new Map();
+ [...box.children].forEach(e=>first.set(e.dataset.id,e.getBoundingClientRect().top));
 
-    data.forEach((r,i)=>{
-        let el=elements.get(r.id);
-        if(!el){
-            el=document.createElement("div");
-            el.className="review";
-            el.dataset.id=r.id;
-            elements.set(r.id,el);
-            container.appendChild(el);
-        }
+ data.forEach((r,i)=>{
+  let el=map.get(r.id);
+  if(!el){
+   el=document.createElement("div");
+   el.className="review";
+   el.dataset.id=r.id;
+   map.set(r.id,el);
+   box.appendChild(el);
+  }
+  if(i===0){
+   el.classList.add("top");
+   if(lastTop!==r.id){sound.play();lastTop=r.id;}
+  }else el.classList.remove("top");
 
-        if(i===0){
-            el.classList.add("top");
-            if(lastTopId!==r.id){
-                crownSound.play();
-                lastTopId=r.id;
-            }
-        }else el.classList.remove("top");
+  el.innerHTML=`
+  <b>${i===0?"👑 ":""}${r.vorname} ${r.nachname}</b>
+  <p>${filter(r.kommentar)}</p>
+  <button onclick="like('${r.id}',${r.likes})">❤️ ${r.likes}</button>
+  <button onclick="report('${r.id}')">🚩</button>
+  ${isAdmin?`<button onclick="deleteReview('${r.id}')">🗑️</button>`:""}
+  `;
+ });
 
-        el.innerHTML=`
-        <strong>${i===0?"👑 ":""}${r.vorname} ${r.nachname}</strong>
-        <p>${filterBadWords(r.kommentar)}</p>
-        <button class="like-btn" onclick="like('${r.id}',${r.likes})">❤️ ${r.likes}</button>
-        <button class="like-btn" onclick="report('${r.id}')">🚩 Melden</button>`;
-    });
+ data.forEach(r=>box.appendChild(map.get(r.id)));
 
-    data.forEach(r=>container.appendChild(elements.get(r.id)));
-
-    [...container.children].forEach(el=>{
-        const last=el.getBoundingClientRect().top;
-        const firstTop=first.get(el.dataset.id);
-        if(firstTop!==undefined){
-            const delta=firstTop-last;
-            if(delta){
-                el.style.transform=`translateY(${delta}px)`;
-                el.style.transition="transform 0s";
-                requestAnimationFrame(()=>{
-                    el.style.transition="transform 0.6s ease";
-                    el.style.transform="";
-                });
-            }
-        }
-    });
+ [...box.children].forEach(el=>{
+  const d=first.get(el.dataset.id)-el.getBoundingClientRect().top;
+  if(d){
+   el.style.transform=`translateY(${d}px)`;
+   el.style.transition="0s";
+   requestAnimationFrame(()=>{
+    el.style.transition=".6s";
+    el.style.transform="";
+   });
+  }
+ });
 });
 </script>
 
