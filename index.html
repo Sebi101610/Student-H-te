@@ -76,7 +76,7 @@ const sound = new Audio("https://www.myinstants.com/media/sounds/notification.mp
 let lastTop = null;
 
 /* 🛑 Bad Words */
-const badWords=["idiot","dumm","arsch","scheiße"];
+const badWords=["idiot","dumm","arsch","scheiße" , "Fotze" , "Nazi" , "nazi" , "fotze"];
 const filter=t=>badWords.reduce((a,w)=>a.replace(new RegExp(w,"gi"),"***"),t);
 
 /* 🔐 Auth */
