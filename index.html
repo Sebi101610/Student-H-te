@@ -3,224 +3,201 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student H@te</title>
+<title>student h@te</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
-body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #1e1e2f, #3a3a5f);
-    color:white;
-}
-
-header{
-    text-align:center;
-    padding:20px;
-    font-size:1.3em;
-    font-weight:bold;
-}
-
-#addBtn{
-    position:fixed;
-    top:15px;
-    right:15px;
-    width:45px;
-    height:45px;
-    border-radius:6px;
-    border:none;
-    font-size:26px;
-    background:#ff4d4d;
-    color:white;
-    cursor:pointer;
-}
-
-#reviews{
-    padding:15px;
-}
-
-.review{
-    background:#2a2a40;
-    padding:12px;
-    margin-bottom:12px;
-    border-radius:8px;
-    transition: transform 0.4s ease, box-shadow 0.4s ease;
-}
-
-.review.top{
-    box-shadow:0 0 15px gold;
-    transform:scale(1.03);
-}
-
-.actions{
-    margin-top:8px;
-}
-
-.actions button{
-    margin-right:6px;
-    border:none;
-    padding:5px 8px;
-    border-radius:5px;
-    cursor:pointer;
-}
-
-.like{ background:#4caf50; color:white; }
-.report{ background:#ff9800; color:black; }
-.delete{ background:#f44336; color:white; }
-
-#modal{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.6);
-    justify-content:center;
-    align-items:center;
-}
-
-#modalContent{
-    background:#2a2a40;
-    padding:15px;
-    border-radius:8px;
-    width:90%;
-    max-width:350px;
-}
-
-input, textarea{
-    width:100%;
-    margin:6px 0;
-    padding:7px;
-    border-radius:5px;
-    border:none;
-}
+body{margin:0;font-family:Arial;background:linear-gradient(135deg,#667eea,#764ba2);}
+header{background:#000;color:#fff;padding:20px;text-align:center;position:relative;}
+.add-btn{position:absolute;right:20px;top:20px;width:45px;height:45px;font-size:28px;}
+.info{background:#fff;margin:10px auto;padding:15px;max-width:800px;border-radius:8px;text-align:center;}
+.container{max-width:800px;margin:auto;padding:10px;}
+.form{display:none;background:#fff;padding:15px;border-radius:8px;}
+.review{background:#fff;padding:15px;margin-top:15px;border-radius:8px;transition:transform .6s;}
+.top{border:3px solid gold;background:#fffbe6;}
+button{cursor:pointer;}
+@media(max-width:600px){.add-btn{width:40px;height:40px;font-size:24px;}}
 </style>
 </head>
 
 <body>
 
-<header>Hier kannst du deine Studenten Bewerten!</header>
-<button id="addBtn">+</button>
+<header>
+<h1>student h@te</h1>
+<button class="add-btn" onclick="toggleForm()">+</button>
+</header>
 
-<div id="reviews"></div>
-
-<div id="modal">
-  <div id="modalContent">
-    <h3>Kommentar hinzufügen</h3>
-    <input id="vorname" placeholder="Vorname">
-    <input id="nachname" placeholder="Nachname">
-    <textarea id="text" placeholder="Kommentar"></textarea>
-    <button onclick="addReview()">Senden</button>
-  </div>
+<div class="info">
+<input id="email" placeholder="E-Mail">
+<input id="password" type="password" placeholder="Passwort">
+<button onclick="register()">Registrieren</button>
+<button onclick="login()">Login</button>
+<p id="userInfo"></p>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<div class="info">Hier kannst du deine Studenten Bewerten!</div>
+
+<div class="container">
+<div class="form" id="form">
+<input id="vorname" placeholder="Vorname">
+<input id="nachname" placeholder="Nachname">
+<textarea id="kommentar" placeholder="Kommentar"></textarea>
+<button onclick="addReview()">Hinzufügen</button>
+</div>
+<div id="reviews"></div>
+</div>
 
 <script>
+/* 🔥 Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyDxCMyTDgjlFPOsfILq7jkQzZ5K5yITBvU",
   authDomain: "student-hate.firebaseapp.com",
-  projectId: "student-hate"
+  projectId: "student-hate",
+  storageBucket: "student-hate.firebasestorage.app",
+  messagingSenderId: "268571338314",
+  appId: "1:268571338314:web:0fa59f26a5e41569a368b3"
 };
-firebase.initializeApp(firebaseConfig);
 
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+/* 👑 ADMIN */
 const ADMIN_EMAIL = "sebas.brock@mstud.ch";
-let isAdmin = false;
+/* SHA-256 Hash von deinem Admin-Passwort */
+const ADMIN_PASSWORD_HASH = "HIER_DEIN_HASH_EINFÜGEN";
 
-auth.onAuthStateChanged(user=>{
-    if(!user){
-        auth.signInAnonymously();
-    } else {
-        isAdmin = user.email === ADMIN_EMAIL;
-    }
+/* 🔊 Sound */
+const sound = new Audio("https://www.myinstants.com/media/sounds/notification.mp3");
+let lastTop = null;
+
+/* 🛑 Bad Words */
+const badWords=["idiot","dumm","arsch","scheiße"];
+const filter=t=>badWords.reduce((a,w)=>a.replace(new RegExp(w,"gi"),"***"),t);
+
+/* 🔐 Auth */
+function register(){
+ auth.createUserWithEmailAndPassword(email.value,password.value)
+ .catch(e=>alert(e.message));
+}
+function login(){
+ auth.signInWithEmailAndPassword(email.value,password.value)
+ .catch(e=>alert(e.message));
+}
+function logout(){auth.signOut();}
+
+auth.onAuthStateChanged(u=>{
+ if(u){
+   window.currentUser=u;
+   window.isAdmin=u.email===ADMIN_EMAIL;
+   userInfo.innerHTML=`${u.email} ${isAdmin?"👑 Admin":""}
+   <button onclick="logout()">Logout</button>`;
+ }else{
+   window.currentUser=null;
+   window.isAdmin=false;
+   userInfo.innerHTML="Bitte einloggen";
+ }
 });
 
-addBtn.onclick = () => modal.style.display = "flex";
-modal.onclick = e => { if(e.target === modal) modal.style.display = "none"; };
-
-function addReview(){
-    const v = vorname.value.trim();
-    const n = nachname.value.trim();
-    const t = text.value.trim();
-    if(!v || !n || !t) return;
-
-    db.collection("reviews").add({
-        name: v + " " + n,
-        text: t,
-        likes: 0
-    });
-
-    modal.style.display = "none";
-    vorname.value = nachname.value = text.value = "";
+/* ➕ */
+function toggleForm(){
+ if(!currentUser){alert("Login nötig");return;}
+ form.style.display=form.style.display==="block"?"none":"block";
 }
 
-let currentTop = null;
+/* 💬 */
+const WEEK=7*24*60*60*1000;
+function addReview(){
+ if(!currentUser)return;
+ if(!vorname.value||!nachname.value||!kommentar.value)return;
+ db.collection("reviews").add({
+   uid:currentUser.uid,
+   vorname:vorname.value,
+   nachname:nachname.value,
+   kommentar:kommentar.value,
+   likes:0,
+   createdAt:Date.now()
+ });
+ form.style.display="none";
+ vorname.value=nachname.value=kommentar.value="";
+}
+function like(id,l){
+ if(!currentUser)return;
+ db.collection("reviews").doc(id).update({likes:l+1});
+}
+function report(id){
+ db.collection("reports").add({id,time:Date.now()});
+ alert("Gemeldet");
+}
+
+/* 🔑 Admin Passwort */
+async function checkAdmin(){
+ const pw=prompt("Admin Passwort:");
+ if(!pw)return false;
+ const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
+ const hash=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+ return hash===ADMIN_PASSWORD_HASH;
+}
+async function deleteReview(id){
+ if(!isAdmin)return;
+ if(!(await checkAdmin())){alert("Falsch");return;}
+ if(confirm("Wirklich löschen?")) db.collection("reviews").doc(id).delete();
+}
+
+/* 🎬 Animation */
+const box=document.getElementById("reviews");
+const map=new Map();
 
 db.collection("reviews")
-.orderBy("likes", "desc")
-.onSnapshot(snap=>{
-    reviews.innerHTML = "";
-    snap.forEach((doc, i)=>{
-        const d = doc.data();
-        const div = document.createElement("div");
-        div.className = "review";
-        div.id = "review-" + doc.id;
+.where("createdAt",">",Date.now()-WEEK)
+.onSnapshot(s=>{
+ const data=s.docs.map(d=>({id:d.id,...d.data()}))
+ .sort((a,b)=>b.likes-a.likes);
 
-        if(i === 0){
-            div.classList.add("top");
-            if(currentTop && currentTop !== doc.id){
-                div.animate(
-                  [{transform:"translateY(40px)"},{transform:"translateY(0)"}],
-                  {duration:400}
-                );
-            }
-            currentTop = doc.id;
-        }
+ const first=new Map();
+ [...box.children].forEach(e=>first.set(e.dataset.id,e.getBoundingClientRect().top));
 
-        div.innerHTML = `
-          <strong>${d.name}</strong><br>
-          ${d.text}
-          <div class="actions">
-            <button class="like">👍 ${d.likes}</button>
-            <button class="report">⚠️</button>
-            ${isAdmin ? '<button class="delete">🗑️</button>' : ''}
-          </div>
-        `;
+ data.forEach((r,i)=>{
+  let el=map.get(r.id);
+  if(!el){
+   el=document.createElement("div");
+   el.className="review";
+   el.dataset.id=r.id;
+   map.set(r.id,el);
+   box.appendChild(el);
+  }
+  if(i===0){
+   el.classList.add("top");
+   if(lastTop!==r.id){sound.play();lastTop=r.id;}
+  }else el.classList.remove("top");
 
-        div.querySelector(".like").onclick = () => {
-            db.collection("reviews").doc(doc.id)
-              .update({likes: firebase.firestore.FieldValue.increment(1)});
-        };
+  el.innerHTML=`
+  <b>${i===0?"👑 ":""}${r.vorname} ${r.nachname}</b>
+  <p>${filter(r.kommentar)}</p>
+  <button onclick="like('${r.id}',${r.likes})">❤️ ${r.likes}</button>
+  <button onclick="report('${r.id}')">🚩</button>
+  ${isAdmin?`<button onclick="deleteReview('${r.id}')">🗑️</button>`:""}
+  `;
+ });
 
-        if(isAdmin){
-            div.querySelector(".delete").onclick = () => deleteReview(doc.id);
-        }
+ data.forEach(r=>box.appendChild(map.get(r.id)));
 
-        reviews.appendChild(div);
-    });
+ [...box.children].forEach(el=>{
+  const d=first.get(el.dataset.id)-el.getBoundingClientRect().top;
+  if(d){
+   el.style.transform=`translateY(${d}px)`;
+   el.style.transition="0s";
+   requestAnimationFrame(()=>{
+    el.style.transition=".6s";
+    el.style.transform="";
+   });
+  }
+ });
 });
-
-/* 🔥 NUR DAS IST NEU: SCHNELLES LÖSCHEN */
-async function deleteReview(id){
-    if(!isAdmin) return;
-
-    const el = document.getElementById("review-" + id);
-    if(el){
-        el.style.transition = "opacity 0.15s, transform 0.15s";
-        el.style.opacity = "0";
-        el.style.transform = "scale(0.9)";
-        setTimeout(() => el.remove(), 150);
-    }
-
-    try{
-        await db.collection("reviews").doc(id).delete();
-    }catch(e){
-        location.reload();
-    }
-}
 </script>
 
 </body>
