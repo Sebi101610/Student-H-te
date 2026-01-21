@@ -8,95 +8,88 @@
 <style>
 body{
     margin:0;
-    font-family:Arial, sans-serif;
-    background:linear-gradient(135deg,#1e1e2f,#3a3a5f);
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #3a3a5f);
     color:white;
 }
 
 header{
-    padding:20px;
     text-align:center;
+    padding:20px;
     font-size:1.3em;
     font-weight:bold;
 }
 
 #addBtn{
     position:fixed;
-    top:20px;
-    right:20px;
-    width:50px;
-    height:50px;
-    font-size:28px;
+    top:15px;
+    right:15px;
+    width:45px;
+    height:45px;
+    border-radius:6px;
+    border:none;
+    font-size:26px;
     background:#ff4d4d;
     color:white;
-    border:none;
-    border-radius:8px;
     cursor:pointer;
 }
 
 #reviews{
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-    gap:15px;
+    padding:15px;
 }
 
 .review{
     background:#2a2a40;
-    padding:15px;
-    border-radius:10px;
-    transition:transform 0.4s ease, box-shadow 0.4s ease;
+    padding:12px;
+    margin-bottom:12px;
+    border-radius:8px;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
 .review.top{
-    box-shadow:0 0 20px gold;
+    box-shadow:0 0 15px gold;
     transform:scale(1.03);
 }
 
 .actions{
-    margin-top:10px;
-    display:flex;
-    gap:10px;
+    margin-top:8px;
 }
 
-button{
+.actions button{
+    margin-right:6px;
     border:none;
-    padding:6px 10px;
-    border-radius:6px;
+    padding:5px 8px;
+    border-radius:5px;
     cursor:pointer;
 }
 
-.like{background:#4caf50;color:white;}
-.report{background:#ff9800;color:black;}
-.delete{background:#f44336;color:white;}
+.like{ background:#4caf50; color:white; }
+.report{ background:#ff9800; color:black; }
+.delete{ background:#f44336; color:white; }
 
 #modal{
     display:none;
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,.6);
-    align-items:center;
+    background:rgba(0,0,0,0.6);
     justify-content:center;
+    align-items:center;
 }
 
 #modalContent{
     background:#2a2a40;
-    padding:20px;
-    border-radius:10px;
+    padding:15px;
+    border-radius:8px;
     width:90%;
-    max-width:400px;
+    max-width:350px;
 }
 
-input,textarea{
+input, textarea{
     width:100%;
     margin:6px 0;
-    padding:8px;
-    border-radius:6px;
+    padding:7px;
+    border-radius:5px;
     border:none;
-}
-
-@media(max-width:600px){
-    header{font-size:1.1em}
 }
 </style>
 </head>
@@ -109,13 +102,13 @@ input,textarea{
 <div id="reviews"></div>
 
 <div id="modal">
-<div id="modalContent">
+  <div id="modalContent">
     <h3>Kommentar hinzufügen</h3>
     <input id="vorname" placeholder="Vorname">
     <input id="nachname" placeholder="Nachname">
     <textarea id="text" placeholder="Kommentar"></textarea>
     <button onclick="addReview()">Senden</button>
-</div>
+  </div>
 </div>
 
 <!-- Firebase -->
@@ -127,12 +120,12 @@ input,textarea{
 const firebaseConfig = {
   apiKey: "AIzaSyDxCMyTDgjlFPOsfILq7jkQzZ5K5yITBvU",
   authDomain: "student-hate.firebaseapp.com",
-  projectId: "student-hate",
+  projectId: "student-hate"
 };
 firebase.initializeApp(firebaseConfig);
 
-const auth = firebase.auth();
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 const ADMIN_EMAIL = "sebas.brock@mstud.ch";
 let isAdmin = false;
@@ -140,103 +133,91 @@ let isAdmin = false;
 auth.onAuthStateChanged(user=>{
     if(!user){
         auth.signInAnonymously();
-    }else{
+    } else {
         isAdmin = user.email === ADMIN_EMAIL;
     }
 });
 
-document.getElementById("addBtn").onclick=()=>modal.style.display="flex";
-modal.onclick=e=>{ if(e.target===modal) modal.style.display="none"; };
-
-const badWords = ["idiot","dumm","arsch"];
-
-function filterText(t){
-    badWords.forEach(w=>{
-        const r=new RegExp(w,"gi");
-        t=t.replace(r,"***");
-    });
-    return t;
-}
+addBtn.onclick = () => modal.style.display = "flex";
+modal.onclick = e => { if(e.target === modal) modal.style.display = "none"; };
 
 function addReview(){
-    const v=vorname.value.trim();
-    const n=nachname.value.trim();
-    let t=text.value.trim();
-    if(!v||!n||!t) return;
-
-    t = filterText(t);
+    const v = vorname.value.trim();
+    const n = nachname.value.trim();
+    const t = text.value.trim();
+    if(!v || !n || !t) return;
 
     db.collection("reviews").add({
-        name:v+" "+n,
-        text:t,
-        likes:0,
-        created:firebase.firestore.FieldValue.serverTimestamp()
+        name: v + " " + n,
+        text: t,
+        likes: 0
     });
 
-    modal.style.display="none";
-    vorname.value=nachname.value=text.value="";
+    modal.style.display = "none";
+    vorname.value = nachname.value = text.value = "";
 }
 
-let currentTop=null;
+let currentTop = null;
 
 db.collection("reviews")
-.orderBy("likes","desc")
+.orderBy("likes", "desc")
 .onSnapshot(snap=>{
-    reviews.innerHTML="";
-    snap.forEach((doc,i)=>{
-        const d=doc.data();
-        const div=document.createElement("div");
-        div.className="review";
-        div.id="review-"+doc.id;
+    reviews.innerHTML = "";
+    snap.forEach((doc, i)=>{
+        const d = doc.data();
+        const div = document.createElement("div");
+        div.className = "review";
+        div.id = "review-" + doc.id;
 
-        if(i===0){
+        if(i === 0){
             div.classList.add("top");
-            if(currentTop && currentTop!==doc.id){
-                div.animate([
-                    {transform:"translateY(60px)"},
-                    {transform:"translateY(0)"}
-                ],{duration:500});
+            if(currentTop && currentTop !== doc.id){
+                div.animate(
+                  [{transform:"translateY(40px)"},{transform:"translateY(0)"}],
+                  {duration:400}
+                );
             }
-            currentTop=doc.id;
+            currentTop = doc.id;
         }
 
-        div.innerHTML=`
-        <strong>${d.name}</strong><br>
-        ${d.text}
-        <div class="actions">
+        div.innerHTML = `
+          <strong>${d.name}</strong><br>
+          ${d.text}
+          <div class="actions">
             <button class="like">👍 ${d.likes}</button>
             <button class="report">⚠️</button>
-            ${isAdmin?'<button class="delete">🗑️</button>':''}
-        </div>
+            ${isAdmin ? '<button class="delete">🗑️</button>' : ''}
+          </div>
         `;
 
-        div.querySelector(".like").onclick=()=>{
+        div.querySelector(".like").onclick = () => {
             db.collection("reviews").doc(doc.id)
-            .update({likes:firebase.firestore.FieldValue.increment(1)});
+              .update({likes: firebase.firestore.FieldValue.increment(1)});
         };
 
         if(isAdmin){
-            div.querySelector(".delete").onclick=()=>deleteReview(doc.id);
+            div.querySelector(".delete").onclick = () => deleteReview(doc.id);
         }
 
         reviews.appendChild(div);
     });
 });
 
+/* 🔥 NUR DAS IST NEU: SCHNELLES LÖSCHEN */
 async function deleteReview(id){
     if(!isAdmin) return;
 
-    const el=document.getElementById("review-"+id);
+    const el = document.getElementById("review-" + id);
     if(el){
-        el.style.transition="opacity .15s, transform .15s";
-        el.style.opacity="0";
-        el.style.transform="scale(.9)";
-        setTimeout(()=>el.remove(),150);
+        el.style.transition = "opacity 0.15s, transform 0.15s";
+        el.style.opacity = "0";
+        el.style.transform = "scale(0.9)";
+        setTimeout(() => el.remove(), 150);
     }
 
     try{
         await db.collection("reviews").doc(id).delete();
-    }catch{
+    }catch(e){
         location.reload();
     }
 }
