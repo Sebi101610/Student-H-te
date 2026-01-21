@@ -77,7 +77,20 @@ let lastTop = null;
 
 /* 🛑 Bad Words */
 const badWords=["idiot","dumm","arsch","scheiße" , "Fotze" , "Nazi" , "nazi" , "fotze"];
-const filter=t=>badWords.reduce((a,w)=>a.replace(new RegExp(w,"gi"),"***"),t);
+
+function censorWord(word){
+    if(word.length <= 2) return "*".repeat(word.length);
+    return word[0] + "*".repeat(word.length - 2) + word[word.length - 1];
+}
+
+function filterText(text){
+    badWords.forEach(bad=>{
+        const regex = new RegExp(bad, "gi");
+        text = text.replace(regex, match => censorWord(match));
+    });
+    return text;
+}
+
 
 /* 🔐 Auth */
 function register(){
